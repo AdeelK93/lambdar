@@ -1,6 +1,7 @@
 *~
 lambdar.zip
 lambdar.zip.json
-r-3.3.2.tar.gz
+r-3.4.1.tar.gz
 test-r-interactive.sh
 .Rhistory
+.DS_Store

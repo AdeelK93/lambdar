@@ -4,7 +4,7 @@ const fs = require('fs');
 const spawnSync = require('child_process').spawnSync;
 
 /** The version of R */
-const version = '3.3.2';
+const version = '3.4.1';
 
 function spawn(command, args) {
     const output = spawnSync(command, args, {
@@ -35,16 +35,24 @@ function chdir_home() {
     process.chdir(path);
 }
 
-function eval_r(expr) {
+function eval_r(data) {
     chdir_home();
-    return spawn(`/tmp/r/${version}/bin/Rscript`, ['-e', expr])
+    // Create temporary file for pdf
+    const tempFile = `/tmp/${Math.random()}.pdf`
+    fs.writeFileSync(tempFile, data, 'base64')
+    console.log(typeof data)
+    // Extract text using R (cat to suppress line numbers)
+    const text = spawn(`/tmp/r/${version}/bin/Rscript`, ['-e', `cat(pdftools::pdf_text('${tempFile}'))`])
+    fs.unlink(tempFile)
+
+    return text;
 }
 
 /**
  * Transfer bottles from CircleCI to BinTray and GitHub
  */
 exports.handler = (event, context, callback) => {
-    console.log('Received event:', JSON.stringify(event, null, 2));
+    console.log('Received event:'/*, JSON.stringify(event, null, 2)*/);
 
     const done = (err, res) => callback(null, {
         statusCode: err ? '400' : '200',
@@ -67,10 +75,10 @@ exports.handler = (event, context, callback) => {
                 break;
             }
         case 'POST':
-            const expr = event.httpMethod == "GET" ? event.queryStringParameters.e : event.body;
-            console.log(expr);
+            const file = event.body;
+            //console.log(expr);
             install_r();
-            done(null, eval_r(expr));
+            done(null, eval_r(file));
             break;
         default:
             done(new Error(`lambdar: Unsupported HTTP method "${event.httpMethod}"`));
